@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏎️ 슈퍼카 vs 클래식카 판별기</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: #333;
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 36px 30px;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 6px; }
+    .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 24px; }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .tab {
+      flex: 1;
+      padding: 12px;
+      border-radius: 12px;
+      border: 2px solid #e0e0e0;
+      background: #f7f7f7;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.15s;
+    }
+    .tab.active {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: #fff;
+      border-color: transparent;
+    }
+    .view { display: none; }
+    .view.active { display: block; }
+    .preview-box {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #f0f0f0;
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+      position: relative;
+    }
+    .preview-box img, .preview-box canvas, .preview-box video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .placeholder { color: #bbb; padding: 20px; font-size: 0.95rem; }
+    button {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 24px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
+      box-shadow: 0 6px 16px rgba(42, 82, 152, 0.4);
+      width: 100%;
+    }
+    button:active { transform: scale(0.97); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    input[type="file"] { display: none; }
+    .file-label {
+      display: block;
+      background: #f7f7f7;
+      border: 2px dashed #ccc;
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      color: #666;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .results { margin-top: 22px; text-align: left; }
+    .result-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .result-label {
+      width: 90px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .bar-track {
+      flex: 1;
+      height: 22px;
+      background: #eee;
+      border-radius: 11px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      width: 0%;
+      transition: width 0.4s ease;
+      border-radius: 11px;
+    }
+    .result-pct { width: 50px; text-align: right; font-weight: 700; font-size: 0.9rem; }
+    .verdict {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 12px;
+      background: #f0f6ff;
+      font-size: 1.15rem;
+      font-weight: 800;
+      min-height: 24px;
+    }
+    .status { margin-top: 14px; color: #999; font-size: 0.85rem; min-height: 18px; }
+    .footer { margin-top: 20px; font-size: 0.75rem; color: #ccc; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🏎️ 슈퍼카 vs 클래식카 판별기</h1>
+    <p class="subtitle">사진을 올리거나 웹캠으로 자동차를 비춰보세요</p>
+
+    <div class="tabs">
+      <div class="tab active" id="tabUpload">📁 사진 업로드</div>
+      <div class="tab" id="tabWebcam">📷 웹캠</div>
+    </div>
+
+    <!-- 업로드 뷰 -->
+    <div class="view active" id="viewUpload">
+      <label class="file-label" for="fileInput">클릭해서 이미지 선택</label>
+      <input type="file" id="fileInput" accept="image/*" />
+      <div class="preview-box" id="uploadPreview">
+        <span class="placeholder">이미지를 선택하면 여기에 표시됩니다</span>
+      </div>
+    </div>
+
+    <!-- 웹캠 뷰 -->
+    <div class="view" id="viewWebcam">
+      <div class="preview-box" id="webcamBox">
+        <span class="placeholder">웹캠 시작 버튼을 눌러주세요</span>
+      </div>
+      <button id="webcamBtn">웹캠 시작</button>
+    </div>
+
+    <div class="verdict" id="verdict"></div>
+    <div class="results" id="results"></div>
+    <div class="status" id="status">모델을 불러오는 중...</div>
+
+    <p class="footer">Powered by Google Teachable Machine</p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+  <script>
+    const URL_BASE = "https://teachablemachine.withgoogle.com/models/bmN586bQo/";
+    let model, maxPredictions;
+    let webcam = null, webcamRunning = false;
+
+    const statusEl = document.getElementById("status");
+    const resultsEl = document.getElementById("results");
+    const verdictEl = document.getElementById("verdict");
+
+    async function loadModel() {
+      try {
+        const modelURL = URL_BASE + "model.json";
+        const metadataURL = URL_BASE + "metadata.json";
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+        statusEl.textContent = "✅ 모델 준비 완료 — 이미지를 올려보세요!";
+      } catch (e) {
+        statusEl.textContent = "⚠️ 모델을 불러오지 못했습니다: " + e.message;
+        console.error(e);
+      }
+    }
+    loadModel();
+
+    function renderPredictions(predictions) {
+      // 확률 내림차순 정렬
+      predictions.sort((a, b) => b.probability - a.probability);
+      resultsEl.innerHTML = "";
+      predictions.forEach((p) => {
+        const pct = (p.probability * 100).toFixed(1);
+        const row = document.createElement("div");
+        row.className = "result-row";
+        row.innerHTML =
+          '<div class="result-label">' + p.className + '</div>' +
+          '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
+          '<div class="result-pct">' + pct + '%</div>';
+        resultsEl.appendChild(row);
+      });
+      const top = predictions[0];
+      verdictEl.textContent = "👉 " + top.className + " (" + (top.probability * 100).toFixed(1) + "%)";
+    }
+
+    async function predict(source) {
+      if (!model) { statusEl.textContent = "모델이 아직 준비되지 않았습니다."; return; }
+      const predictions = await model.predict(source);
+      renderPredictions(predictions);
+    }
+
+    /* ---------- 탭 전환 ---------- */
+    const tabUpload = document.getElementById("tabUpload");
+    const tabWebcam = document.getElementById("tabWebcam");
+    const viewUpload = document.getElementById("viewUpload");
+    const viewWebcam = document.getElementById("viewWebcam");
+
+    tabUpload.addEventListener("click", () => {
+      tabUpload.classList.add("active"); tabWebcam.classList.remove("active");
+      viewUpload.classList.add("active"); viewWebcam.classList.remove("active");
+      stopWebcam();
+    });
+    tabWebcam.addEventListener("click", () => {
+      tabWebcam.classList.add("active"); tabUpload.classList.remove("active");
+      viewWebcam.classList.add("active"); viewUpload.classList.remove("active");
+    });
+
+    /* ---------- 업로드 판별 ---------- */
+    const fileInput = document.getElementById("fileInput");
+    const uploadPreview = document.getElementById("uploadPreview");
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const img = new Image();
+      img.onload = async () => {
+        uploadPreview.innerHTML = "";
+        uploadPreview.appendChild(img);
+        statusEl.textContent = "분석 중...";
+        await predict(img);
+        statusEl.textContent = "완료!";
+      };
+      img.src = URL.createObjectURL(file);
+    });
+
+    /* ---------- 웹캠 판별 ---------- */
+    const webcamBtn = document.getElementById("webcamBtn");
+    const webcamBox = document.getElementById("webcamBox");
+
+    async function startWebcam() {
+      webcam = new tmImage.Webcam(400, 300, true);
+      await webcam.setup();
+      await webcam.play();
+      webcamRunning = true;
+      webcamBox.innerHTML = "";
+      webcamBox.appendChild(webcam.canvas);
+      webcamBtn.textContent = "웹캠 정지";
+      loopWebcam();
+    }
+    function stopWebcam() {
+      if (webcam && webcamRunning) {
+        webcam.stop();
+        webcamRunning = false;
+        webcamBtn.textContent = "웹캠 시작";
+      }
+    }
+    async function loopWebcam() {
+      if (!webcamRunning) return;
+      webcam.update();
+      await predict(webcam.canvas);
+      window.requestAnimationFrame(loopWebcam);
+    }
+    webcamBtn.addEventListener("click", async () => {
+      if (webcamRunning) { stopWebcam(); return; }
+      try {
+        statusEl.textContent = "웹캠 시작 중...";
+        await startWebcam();
+        statusEl.textContent = "웹캠 실시간 분석 중...";
+      } catch (e) {
+        statusEl.textContent = "⚠️ 웹캠을 사용할 수 없습니다: " + e.message;
+      }
+    });
+  </script>
+</body>
+</html>
